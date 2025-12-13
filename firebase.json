@@ -1,0 +1,31 @@
+{
+	"flutter": {
+		"platforms": {
+			"android": {
+				"default": {
+					"projectId": "mooder-c585f",
+					"appId": "1:143177689838:android:91d21a815c7621bcab21ff",
+					"fileOutput": "android/app/google-services.json"
+				}
+			},
+			"dart": {
+				"lib/firebase_options.dart": {
+					"projectId": "mooder-c585f",
+					"configurations": {
+						"android": "1:143177689838:android:91d21a815c7621bcab21ff"
+					}
+				}
+			}
+		}
+	},
+	"functions": {
+		"codebase": "default",
+		"disallowLegacyRuntimeConfig": true,
+		"ignore": ["node_modules", ".git", "firebase-debug.log", "firebase-debug.*.log", "*.local"],
+		"source": "functions",
+		"scripts": {
+			"lint": "echo \"lint skipped\"",
+			"deploy": "firebase deploy --only functions"
+		}
+	}
+}
