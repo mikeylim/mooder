@@ -37,24 +37,20 @@ app.use((req, res, next) => {
 	next();
 });
 
-// support Firebase JSON via env var
+// ✅ Firebase Admin init (Render-friendly)
+// Prefer FIREBASE_SERVICE_ACCOUNT_JSON (full JSON string) in production.
+// Fallback to FIREBASE_SERVICE_ACCOUNT_PATH for local dev.
 let serviceAccount;
 
 if (process.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
-	// ✅ Recommended on Render: paste JSON string into env var
 	serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
 } else if (process.env.FIREBASE_SERVICE_ACCOUNT_PATH) {
-	// ✅ Local dev fallback
 	serviceAccount = JSON.parse(fs.readFileSync(process.env.FIREBASE_SERVICE_ACCOUNT_PATH, "utf8"));
 } else {
 	throw new Error(
-		"Missing Firebase Admin credentials. Set FIREBASE_SERVICE_ACCOUNT_JSON (Render) or FIREBASE_SERVICE_ACCOUNT_PATH (local)."
+		"Missing Firebase service account config. Set FIREBASE_SERVICE_ACCOUNT_JSON (recommended) or FIREBASE_SERVICE_ACCOUNT_PATH (local dev)."
 	);
 }
-
-admin.initializeApp({
-	credential: admin.credential.cert(serviceAccount),
-});
 
 admin.initializeApp({
 	credential: admin.credential.cert(serviceAccount),
