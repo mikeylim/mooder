@@ -32,17 +32,19 @@ Safety is built in: when sensitive states are detected, suggestions are limited 
 - Category-based suggestions (quick actions, activities, meditation, food, books)
 - Suggestions are generated per check-in
 - Saved and reusable from history
+- Users can generate suggestions later for categories they didn’t initially choose
 - Automatic fallback to a secondary AI provider when quota limits are reached
 
 ### History
 - Chronological list of check-ins
 - Emoji-enhanced mood display
-- Swipe actions and bulk delete
-- Generate suggestions directly from past check-ins
+- View full check-in details
+- Generate or regenerate suggestions from past check-ins
 
 ### Insights
 - Summary statistics over the last 7 or 30 days
-- Trend graphs for energy, tension, focus, and connection
+- Single, interpretable overall mood score (0–10) trend line
+- Clear explanation of how the overall score is calculated
 - Most common moods with percentages
 - Top drivers with accurate percentage breakdowns
 
@@ -54,22 +56,27 @@ Safety is built in: when sensitive states are detected, suggestions are limited 
 - Emphasis on small, achievable actions
 - Privacy-first data handling
 - Safety-aware UX
+- Trends over time are emphasized over “perfect” scores
 
 ---
 
 ## Tech Stack
 
 ### Frontend
-- Flutter
+- Flutter (Material 3)
 - Firebase Authentication
 - Cloud Firestore
-- fl_chart (charts and trends)
+- fl_chart (insights and trends)
 
 ### Backend
 - Node.js + Express
 - Firebase Admin SDK
-- Google Gemini (primary AI)
+- Google Gemini API (primary AI provider)
 - Cloudflare Workers AI (fallback)
+
+### Hosting
+- Render (backend API hosting with HTTPS)
+- Firebase (auth + database)
 
 ---
 
@@ -91,21 +98,26 @@ Required variables:
 ## Running the Project
 
 ### Backend
-cd server
-npm install
-node server.js
+cd server  
+npm install  
+npm start  
 
 Health check: GET /health
 
 ### Flutter App
-flutter pub get
-flutter run
+flutter pub get  
+flutter run  
+
+For local development, the backend URL can be overridden using:
+flutter run --dart-define=BACKEND_BASE_URL=http://<your-ip>:8787
+
+Production builds use the deployed backend automatically.
 
 ---
 
 ## Disclaimer
 
-Mooder is a self-reflection and wellbeing support tool.
+Mooder is a self-reflection and wellbeing support tool.  
 It does not provide medical or mental health diagnosis or treatment.
 
 If you are in immediate danger or distress, contact local emergency services or a trusted person.
