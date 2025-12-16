@@ -140,7 +140,7 @@ class _HistoryDetailScreenState extends State<HistoryDetailScreen> {
       final drivers = (checkinData['drivers'] as List?) ?? const [];
       final selfHarmThoughts = checkinData['selfHarmThoughts'] == true;
 
-      final url = Uri.parse('$backendBaseUrl/suggestions');
+      final url = suggestionsUri();
       final resp = await http.post(
         url,
         headers: {
@@ -233,6 +233,18 @@ class _HistoryDetailScreenState extends State<HistoryDetailScreen> {
               .map((k) => k.toString())
               .toList();
 
+          const allCategories = [
+            'quick_actions',
+            'activities',
+            'meditation',
+            'food',
+            'books',
+          ];
+
+          final missingCategories = allCategories
+              .where((c) => !savedCategories.contains(c))
+              .toList();
+
           return SingleChildScrollView(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -282,6 +294,37 @@ class _HistoryDetailScreenState extends State<HistoryDetailScreen> {
                       : '${AppCopy.savedSuggestions}: ${savedCategories.map(_labelForCategory).join(", ")}',
                 ),
 
+                const SizedBox(height: 12),
+
+                // ✅ Offer categories that haven't been generated/saved yet
+                if (missingCategories.isNotEmpty) ...[
+                  Text(
+                    'More ideas',
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: missingCategories.map((c) {
+                      return _IdeasBtn(
+                        label: _labelForCategory(c),
+                        category: c,
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'These will generate and save suggestions for this check-in.',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ] else ...[
+                  Text(
+                    'All categories have saved ideas for this check-in.',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
+
                 if (_error != null) ...[
                   const SizedBox(height: 10),
                   Text(_error!, style: const TextStyle(color: Colors.red)),
@@ -290,29 +333,10 @@ class _HistoryDetailScreenState extends State<HistoryDetailScreen> {
                 const Divider(height: 28),
 
                 if (savedCategories.isEmpty) ...[
-                  Text(
-                    'No saved ideas yet.',
-                    style: Theme.of(context).textTheme.bodyMedium,
-                  ),
-                  const SizedBox(height: 10),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: const [
-                      _IdeasBtn(
-                        label: 'Quick actions',
-                        category: 'quick_actions',
-                      ),
-                      _IdeasBtn(label: 'Activities', category: 'activities'),
-                      _IdeasBtn(label: 'Meditation', category: 'meditation'),
-                      _IdeasBtn(label: 'Food', category: 'food'),
-                      _IdeasBtn(label: 'Books', category: 'books'),
-                    ],
-                  ),
                   const SizedBox(height: 8),
                   Text(
-                    'Tip: start with something small.',
-                    style: Theme.of(context).textTheme.bodySmall,
+                    'No saved ideas yet. Pick a category to generate suggestions.',
+                    style: Theme.of(context).textTheme.bodyMedium,
                   ),
                 ],
 
@@ -437,7 +461,7 @@ class _HistoryDetailScreenState extends State<HistoryDetailScreen> {
                       ),
                     ),
                   );
-                }).toList(),
+                }),
               ],
             ),
           );
@@ -472,9 +496,6 @@ class _IdeasBtn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final route = ModalRoute.of(context);
-    final args = route?.settings.arguments;
-
     // We need the checkinId from the page route; easiest is: read it from Navigator stack by pushing
     // SuggestionsFromHistoryScreen from HistoryDetailScreen directly. Since this widget is inside that screen,
     // we can just find it via ancestor state using context.findAncestorStateOfType.

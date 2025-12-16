@@ -127,7 +127,7 @@ class _SuggestionsScreenState extends State<SuggestionsScreen> {
       if (user == null) throw Exception('Not signed in');
 
       final token = await user.getIdToken();
-      final url = Uri.parse('$backendBaseUrl/suggestions');
+      final url = suggestionsUri();
 
       final resp = await http.post(
         url,

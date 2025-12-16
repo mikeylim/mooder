@@ -1,5 +1,4 @@
 // checkin_models.dart
-import 'package:flutter/foundation.dart';
 
 enum PrimaryMood {
   // Positive

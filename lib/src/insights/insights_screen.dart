@@ -208,18 +208,94 @@ String _titleCase(String s) {
 
 class _TrendRow {
   final DateTime when;
-  final int energy;
-  final int tension;
-  final int focus;
-  final int connection;
+  final double score;
 
-  _TrendRow({
-    required this.when,
-    required this.energy,
-    required this.tension,
-    required this.focus,
-    required this.connection,
-  });
+  _TrendRow({required this.when, required this.score});
+}
+
+double _baseMoodScore(String moodName) {
+  switch (moodName.toLowerCase()) {
+    // Positive
+    case 'happy':
+      return 8.5;
+    case 'good':
+      return 8.0;
+    case 'calm':
+      return 7.5;
+    case 'content':
+      return 7.0;
+
+    // Neutral / mixed
+    case 'okay':
+      return 5.5;
+    case 'neutral':
+      return 5.0;
+    case 'numb':
+      return 4.5;
+
+    // Tough
+    case 'tired':
+      return 4.0;
+    case 'stressed':
+      return 3.5;
+    case 'anxious':
+      return 3.5;
+    case 'angry':
+      return 3.0;
+    case 'sad':
+      return 3.0;
+    case 'down':
+      return 2.5;
+
+    default:
+      return 5.0;
+  }
+}
+
+String _scoreExplanationText() {
+  return '''
+Overall score is a simple 0–10 summary used to show trends over time.
+
+It combines:
+• your selected mood (base)
+• energy, focus, connection (slightly increase/decrease)
+• tension (slightly decreases)
+
+Approx equation:
+
+score =
+  baseMood
+  + 0.18 × (energy − 5)
+  + 0.14 × (focus − 5)
+  + 0.14 × (connection − 5)
+  − 0.18 × (tension − 5)
+
+Then clamped to 0–10.
+
+How to read it:
+• Look for direction (up/down) and stability, not “perfect numbers”.
+• Big jumps usually mean a different mood choice or big shifts in sliders.
+''';
+}
+
+double _overallScore(CheckInInput input) {
+  // Score is on a 0–10 scale. Mood provides a base value.
+  // We then nudge it based on energy/focus/connection (up) and tension (down).
+  final base = _baseMoodScore(input.primaryMood.name);
+
+  final energy = input.energy.clamp(0, 10).toDouble();
+  final focus = input.focus.clamp(0, 10).toDouble();
+  final connection = input.connection.clamp(0, 10).toDouble();
+  final tension = input.tension.clamp(0, 10).toDouble();
+
+  // Center around 5 so adjustments are symmetric.
+  final e = (energy - 5) * 0.30;
+  final f = (focus - 5) * 0.20;
+  final c = (connection - 5) * 0.20;
+  final t = (tension - 5) * 0.30;
+
+  final score = base + e + f + c - t;
+  return score.clamp(0.0, 10.0);
 }
 
 List<_TrendRow> _buildTrendRows(
@@ -232,15 +308,7 @@ List<_TrendRow> _buildTrendRows(
     final input = inputs[i];
     final when = i < timestamps.length ? timestamps[i] : DateTime.now();
 
-    out.add(
-      _TrendRow(
-        when: when,
-        energy: input.energy.clamp(0, 10),
-        tension: input.tension.clamp(0, 10),
-        focus: input.focus.clamp(0, 10),
-        connection: input.connection.clamp(0, 10),
-      ),
-    );
+    out.add(_TrendRow(when: when, score: _overallScore(input)));
   }
   return out;
 }
@@ -363,41 +431,15 @@ class _TrendCard extends StatelessWidget {
       );
     }
 
-    final energySpots = <FlSpot>[];
-    final tensionSpots = <FlSpot>[];
-    final focusSpots = <FlSpot>[];
-    final connectionSpots = <FlSpot>[];
+    final scoreSpots = <FlSpot>[];
 
     for (var i = 0; i < points.length; i++) {
-      energySpots.add(FlSpot(i.toDouble(), points[i].energy.toDouble()));
-      tensionSpots.add(FlSpot(i.toDouble(), points[i].tension.toDouble()));
-      focusSpots.add(FlSpot(i.toDouble(), points[i].focus.toDouble()));
-      connectionSpots.add(
-        FlSpot(i.toDouble(), points[i].connection.toDouble()),
-      );
+      scoreSpots.add(FlSpot(i.toDouble(), points[i].score));
     }
 
-    const energyColor = Colors.green;
-    const tensionColor = Colors.red;
-    const focusColor = Colors.blue;
-    const connectionColor = Colors.purple;
+    const scoreColor = Colors.teal;
 
     final xInterval = (points.length / 4).clamp(1, 6).toDouble();
-
-    String _seriesLabel(int barIndex) {
-      switch (barIndex) {
-        case 0:
-          return AppCopy.insightsLegendEnergy;
-        case 1:
-          return AppCopy.insightsLegendTension;
-        case 2:
-          return AppCopy.insightsLegendFocus;
-        case 3:
-          return AppCopy.insightsLegendConnection;
-        default:
-          return 'Value';
-      }
-    }
 
     return Card(
       child: Padding(
@@ -405,13 +447,30 @@ class _TrendCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              AppCopy.insightsTrendTitle,
-              style: Theme.of(context).textTheme.titleMedium,
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    AppCopy.insightsTrendTitle,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                ),
+                IconButton(
+                  tooltip: 'How this score works',
+                  icon: const Icon(Icons.info_outline),
+                  onPressed: () {
+                    showDialog<void>(
+                      context: context,
+                      builder: (ctx) => const _OverallScoreInfoDialog(),
+                    );
+                  },
+                ),
+              ],
             ),
+
             const SizedBox(height: 6),
             Text(
-              'Y-axis: level (0–10) • X-axis: recent check-ins',
+              'Overall mood score (0–10) • Recent check-ins',
               style: Theme.of(context).textTheme.bodySmall,
             ),
             const SizedBox(height: 10),
@@ -475,31 +534,10 @@ class _TrendCard extends StatelessWidget {
                   ),
                   lineBarsData: [
                     LineChartBarData(
-                      spots: energySpots,
+                      spots: scoreSpots,
                       isCurved: true,
                       barWidth: 3,
-                      color: energyColor,
-                      dotData: const FlDotData(show: true),
-                    ),
-                    LineChartBarData(
-                      spots: tensionSpots,
-                      isCurved: true,
-                      barWidth: 3,
-                      color: tensionColor,
-                      dotData: const FlDotData(show: true),
-                    ),
-                    LineChartBarData(
-                      spots: focusSpots,
-                      isCurved: true,
-                      barWidth: 3,
-                      color: focusColor,
-                      dotData: const FlDotData(show: true),
-                    ),
-                    LineChartBarData(
-                      spots: connectionSpots,
-                      isCurved: true,
-                      barWidth: 3,
-                      color: connectionColor,
+                      color: scoreColor,
                       dotData: const FlDotData(show: true),
                     ),
                   ],
@@ -520,41 +558,20 @@ class _TrendCard extends StatelessWidget {
                       getTooltipItems: (touchedSpots) {
                         if (touchedSpots.isEmpty) return const [];
 
-                        final spots = [...touchedSpots]
-                          ..sort((a, b) => a.barIndex.compareTo(b.barIndex));
-
-                        final idx = spots.first.x.round().clamp(
-                          0,
-                          points.length - 1,
-                        );
+                        // Only one series now. Use the first spot.
+                        final s = touchedSpots.first;
+                        final idx = s.x.round().clamp(0, points.length - 1);
                         final dt = points[idx].when;
                         final date = '${dt.month}/${dt.day}';
 
-                        final combined = LineTooltipItem(
-                          '$date\n',
-                          const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 13,
-                          ),
-                          children: spots.map((s) {
-                            final label = _seriesLabel(s.barIndex);
-                            return TextSpan(
-                              text: '$label: ${s.y.round()}/10\n',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w400,
-                                fontSize: 12,
-                              ),
-                            );
-                          }).toList(),
-                        );
-
                         return [
-                          combined,
-                          ...List<LineTooltipItem?>.filled(
-                            spots.length - 1,
-                            null,
+                          LineTooltipItem(
+                            '$date\nScore: ${s.y.toStringAsFixed(1)}/10',
+                            const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 12,
+                            ),
                           ),
                         ];
                       },
@@ -568,22 +585,7 @@ class _TrendCard extends StatelessWidget {
               spacing: 14,
               runSpacing: 8,
               children: [
-                _LegendItem(
-                  color: energyColor,
-                  label: AppCopy.insightsLegendEnergy,
-                ),
-                _LegendItem(
-                  color: tensionColor,
-                  label: AppCopy.insightsLegendTension,
-                ),
-                _LegendItem(
-                  color: focusColor,
-                  label: AppCopy.insightsLegendFocus,
-                ),
-                _LegendItem(
-                  color: connectionColor,
-                  label: AppCopy.insightsLegendConnection,
-                ),
+                _LegendItem(color: scoreColor, label: 'Overall Mood Score'),
               ],
             ),
           ],
@@ -611,6 +613,133 @@ class _LegendItem extends StatelessWidget {
         ),
         const SizedBox(width: 6),
         Text(label),
+      ],
+    );
+  }
+}
+
+class _OverallScoreInfoDialog extends StatefulWidget {
+  const _OverallScoreInfoDialog();
+
+  @override
+  State<_OverallScoreInfoDialog> createState() =>
+      _OverallScoreInfoDialogState();
+}
+
+class _OverallScoreInfoDialogState extends State<_OverallScoreInfoDialog> {
+  bool _showFormula = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+
+    return AlertDialog(
+      title: const Text('Overall score (0–10)'),
+      content: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'This is a simple summary number used to show your trend over time.',
+              style: textTheme.bodyMedium,
+            ),
+            const SizedBox(height: 10),
+            Text(
+              'It starts from your selected mood (base), then adjusts slightly based on:',
+              style: textTheme.bodyMedium,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '• Energy, focus, connection (can raise/lower the score)',
+              style: textTheme.bodyMedium,
+            ),
+            Text(
+              '• Tension (generally lowers the score)',
+              style: textTheme.bodyMedium,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'How to read it:',
+              style: textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              '• Focus on direction (up/down) and stability.',
+              style: textTheme.bodyMedium,
+            ),
+            Text(
+              '• Don’t overthink exact numbers — it’s not a diagnosis.',
+              style: textTheme.bodyMedium,
+            ),
+
+            const SizedBox(height: 14),
+            const Divider(height: 1),
+            const SizedBox(height: 6),
+
+            // ✅ Collapsible section
+            InkWell(
+              borderRadius: BorderRadius.circular(8),
+              onTap: () => setState(() => _showFormula = !_showFormula),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                child: Row(
+                  children: [
+                    Icon(_showFormula ? Icons.expand_less : Icons.expand_more),
+                    const SizedBox(width: 8),
+                    Text(
+                      _showFormula ? 'Hide formula' : 'Show formula',
+                      style: textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            if (_showFormula) ...[
+              const SizedBox(height: 6),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surfaceVariant,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  '''
+score =
+  baseMood
+  + 0.18 × (energy − 5)
+  + 0.14 × (focus − 5)
+  + 0.14 × (connection − 5)
+  − 0.18 × (tension − 5)
+
+then clamped to 0–10
+'''
+                      .trim(),
+                  style: textTheme.bodySmall?.copyWith(
+                    fontFamily: 'monospace',
+                    height: 1.35,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Note: the app’s code uses the same idea with slightly different weights.',
+                style: textTheme.bodySmall,
+              ),
+            ],
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Got it'),
+        ),
       ],
     );
   }

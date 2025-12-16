@@ -213,7 +213,7 @@ class _CheckInScreenState extends State<CheckInScreen> {
         const Text(AppCopy.moodQuestion),
         const SizedBox(height: 8),
         DropdownButtonFormField<PrimaryMood>(
-          value: _primaryMood,
+          initialValue: _primaryMood,
           items: PrimaryMood.values
               .map((m) => DropdownMenuItem(value: m, child: Text(m.label)))
               .toList(),
