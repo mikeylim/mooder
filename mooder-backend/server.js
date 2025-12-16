@@ -37,10 +37,24 @@ app.use((req, res, next) => {
 	next();
 });
 
-// ✅ Firebase Admin init (service account JSON file)
-const serviceAccount = JSON.parse(
-	fs.readFileSync(process.env.FIREBASE_SERVICE_ACCOUNT_PATH, "utf8")
-);
+// support Firebase JSON via env var
+let serviceAccount;
+
+if (process.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
+	// ✅ Recommended on Render: paste JSON string into env var
+	serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
+} else if (process.env.FIREBASE_SERVICE_ACCOUNT_PATH) {
+	// ✅ Local dev fallback
+	serviceAccount = JSON.parse(fs.readFileSync(process.env.FIREBASE_SERVICE_ACCOUNT_PATH, "utf8"));
+} else {
+	throw new Error(
+		"Missing Firebase Admin credentials. Set FIREBASE_SERVICE_ACCOUNT_JSON (Render) or FIREBASE_SERVICE_ACCOUNT_PATH (local)."
+	);
+}
+
+admin.initializeApp({
+	credential: admin.credential.cert(serviceAccount),
+});
 
 admin.initializeApp({
 	credential: admin.credential.cert(serviceAccount),
