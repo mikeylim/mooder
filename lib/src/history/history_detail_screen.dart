@@ -10,8 +10,7 @@ import '../utils/app_copy.dart';
 import '../utils/state_tag_formatter.dart';
 import '../utils/mood_emoji.dart';
 import '../suggestions/suggestions_from_history_screen.dart';
-
-const String backendBaseUrl = 'http://192.168.45.252:8787';
+import '../../config/backend_config.dart';
 
 class HistoryDetailScreen extends StatefulWidget {
   final String checkinId;
@@ -34,37 +33,6 @@ class _HistoryDetailScreenState extends State<HistoryDetailScreen> {
         .doc(uid)
         .collection('checkins')
         .doc(widget.checkinId);
-  }
-
-  String _emojiForMood(String mood) {
-    switch (mood.toLowerCase()) {
-      // Positive
-      case 'happy':
-        return '😊';
-      case 'calm':
-        return '😌';
-      case 'content':
-        return '🙂';
-
-      // Neutral
-      case 'neutral':
-        return '😐';
-      case 'okay':
-        return '🙂';
-      case 'numb':
-        return '😶';
-
-      // Tough
-      case 'sad':
-        return '😢';
-      case 'anxious':
-        return '😟';
-      case 'stressed':
-        return '😣';
-
-      default:
-        return '😐';
-    }
   }
 
   String _formatSavedAt(dynamic value) {

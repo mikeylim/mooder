@@ -9,8 +9,7 @@ import 'package:http/http.dart' as http;
 import '../checkin/checkin_models.dart';
 import '../utils/app_copy.dart';
 import '../utils/state_tag_formatter.dart';
-
-const String backendBaseUrl = 'http://192.168.45.252:8787';
+import '../../config/backend_config.dart';
 
 class SuggestionsScreen extends StatefulWidget {
   final CheckInInput input;
